@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.userLogin = exports.userSignup = exports.getAllUsers = void 0;
 const User_1 = __importDefault(require("../models/User"));
-const bcrypt_1 = __importDefault(require("bcrypt"));
+const bcrypt = require('bcrypt');
 const { validationResult } = require("express-validator");
 const getAllUsers = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
     try {
@@ -41,11 +41,18 @@ const userSignup = (req, res, next) => __awaiter(void 0, void 0, void 0, functio
         }
         // Hash the password
         const saltRounds = 10;
-        const hashedPassword = yield bcrypt_1.default.hash(password, saltRounds);
+        const hashedPassword = yield bcrypt.hash(password, saltRounds);
         // Create new user
         const newUser = new User_1.default({ name, email, password: hashedPassword });
         yield newUser.save();
-        return res.status(201).json({ message: "User created successfully", user: newUser });
+        // Create token and save cookies
+        const token = newUser.generateAuthToken();
+        if (!token) {
+            console.log("Token is not generated");
+        }
+        console.log(token);
+        res.cookie('token', token);
+        return res.status(201).json({ message: "User created successfully", user: newUser, token });
     }
     catch (error) {
         console.log(error);
@@ -66,11 +73,17 @@ const userLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             return res.status(404).json({ message: "User not found" });
         }
         // Compare passwords
-        const isPasswordValid = yield bcrypt_1.default.compare(password, user.password);
+        const isPasswordValid = yield bcrypt.compare(password, user.password);
         if (!isPasswordValid) {
             return res.status(401).json({ message: "Invalid credentials" });
         }
-        return res.status(200).json({ message: "Login successful", user });
+        const token = user.generateAuthToken();
+        if (!token) {
+            console.log("Token is not generated");
+        }
+        console.log(token);
+        res.cookie('token', token);
+        return res.status(200).json({ message: "Login successful", user, token });
     }
     catch (error) {
         console.log(error);

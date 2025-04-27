@@ -34,7 +34,15 @@ export const userSignup = async (req: Request, res: Response, next: NextFunction
         const newUser = new User({ name, email, password : hashedPassword });
         await newUser.save();
 
-        return res.status(201).json({ message: "User created successfully", user: newUser });
+        // Create token and save cookies
+        const token = newUser.generateAuthToken();
+        if(!token){
+            console.log("Token is not generated");
+        }
+        console.log(token)
+        res.cookie('token',token);
+
+        return res.status(201).json({ message: "User created successfully", user: newUser , token });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error", cause: error.message });
@@ -62,7 +70,14 @@ export const userLogin = async(req :Request , res : Response) => {
             return res.status(401).json({ message: "Invalid credentials" });
         }
 
-        return res.status(200).json({ message: "Login successful", user });
+        const token = user.generateAuthToken();
+        if(!token){
+            console.log("Token is not generated");
+        }
+        console.log(token)
+        res.cookie('token',token);
+
+        return res.status(200).json({ message: "Login successful", user , token });
     } catch (error) {
         console.log(error);
         return res.status(500).json({ message: "Internal Server Error", cause: error.message });
